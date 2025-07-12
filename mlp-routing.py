@@ -14,30 +14,18 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"🚀 Using device: {device}")
 
 class StandardMLP(nn.Module):
-    """Baseline MLP for comparison with five hidden layers and GELU activation"""
-    def __init__(self, input_size=784, hidden_size1=512, hidden_size2=256, hidden_size3=128, hidden_size4=64, hidden_size5=32, num_classes=10, dropout=0.2):
+    """Baseline MLP for comparison with three layers and GELU activation"""
+    def __init__(self, input_size=784, hidden_size=512, num_classes=10, dropout=0.2):
         super().__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size1)
-        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
-        self.fc3 = nn.Linear(hidden_size2, hidden_size3)
-        self.fc4 = nn.Linear(hidden_size3, hidden_size4)
-        self.fc5 = nn.Linear(hidden_size4, hidden_size5)
-        self.fc6 = nn.Linear(hidden_size5, num_classes)
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, num_classes)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
         x = F.gelu(self.fc1(x))
         x = self.dropout(x)
-        x = F.gelu(self.fc2(x))
-        x = self.dropout(x)
-        x = F.gelu(self.fc3(x))
-        x = self.dropout(x)
-        x = F.gelu(self.fc4(x))
-        x = self.dropout(x)
-        x = F.gelu(self.fc5(x))
-        x = self.dropout(x)
-        x = self.fc6(x)
+        x = self.fc2(x)
         return x
 
 class GLBLPathwayMLP(nn.Module):
@@ -48,86 +36,62 @@ class GLBLPathwayMLP(nn.Module):
     - Decomposes MLP into semantic pathways
     - Uses GLBL loss to prevent pathway collapse
     - Enables interpretable information flow control
+    - Fine-grained groups with 8 hidden groups
     """
     
     def __init__(self, pretrained_mlp, config=None):
         super().__init__()
         
-        # Default configuration  
+        # Updated default configuration for fine-grained groups
         default_config = {
             'num_input_regions': 4,        # Spatial image regions
-            'num_hidden1_groups': 2,       # First hidden layer neuron groups  
-            'num_hidden2_groups': 2,       # Second hidden layer neuron groups
-            'num_hidden3_groups': 2,       # Third hidden layer neuron groups
-            'num_hidden4_groups': 2,       # Fourth hidden layer neuron groups
-            'num_hidden5_groups': 2,       # Fifth hidden layer neuron groups
+            'num_hidden_groups': 8,        # CHANGED: More fine-grained groups (8 instead of 4)
             'num_output_groups': 4,        # Output class groups
             'momentum': 0.9,               # For global statistics
-            'router_hidden_size': 256,     # Pathway router capacity
+            'router_hidden_size': 512,     # CHANGED: Larger router capacity for more pathways
             'router_dropout': 0.1          # Pathway router dropout
         }
         self.config = {**default_config, **(config or {})}
         
         # Network dimensions
         self.input_dim = pretrained_mlp.fc1.in_features
-        self.hidden1_dim = pretrained_mlp.fc1.out_features
-        self.hidden2_dim = pretrained_mlp.fc2.out_features
-        self.hidden3_dim = pretrained_mlp.fc3.out_features
-        self.hidden4_dim = pretrained_mlp.fc4.out_features
-        self.hidden5_dim = pretrained_mlp.fc5.out_features
-        self.output_dim = pretrained_mlp.fc6.out_features
+        self.hidden_dim = pretrained_mlp.fc1.out_features
+        self.output_dim = pretrained_mlp.fc2.out_features
         
         # Pathway configuration
         self.num_input_regions = self.config['num_input_regions']
-        self.num_hidden1_groups = self.config['num_hidden1_groups']
-        self.num_hidden2_groups = self.config['num_hidden2_groups']
-        self.num_hidden3_groups = self.config['num_hidden3_groups']
-        self.num_hidden4_groups = self.config['num_hidden4_groups']
-        self.num_hidden5_groups = self.config['num_hidden5_groups']
+        self.num_hidden_groups = self.config['num_hidden_groups']
         self.num_output_groups = self.config['num_output_groups']
         self.num_pathways = (self.num_input_regions * 
-                           self.num_hidden1_groups * 
-                           self.num_hidden2_groups *
-                           self.num_hidden3_groups *
-                           self.num_hidden4_groups *
-                           self.num_hidden5_groups *
+                           self.num_hidden_groups * 
                            self.num_output_groups)
         
-        print(f"🧠 GLBL Pathway MLP Configuration:")
-        print(f"   Input: {self.input_dim} → H1: {self.hidden1_dim} → H2: {self.hidden2_dim} → H3: {self.hidden3_dim} → H4: {self.hidden4_dim} → H5: {self.hidden5_dim} → Output: {self.output_dim}")
-        print(f"   Pathways: {self.num_input_regions}×{self.num_hidden1_groups}×{self.num_hidden2_groups}×{self.num_hidden3_groups}×{self.num_hidden4_groups}×{self.num_hidden5_groups}×{self.num_output_groups} = {self.num_pathways}")
+        print(f"🧠 Fine-Grained GLBL Pathway MLP Configuration:")
+        print(f"   Input: {self.input_dim} → Hidden: {self.hidden_dim} → Output: {self.output_dim}")
+        print(f"   Pathways: {self.num_input_regions}×{self.num_hidden_groups}×{self.num_output_groups} = {self.num_pathways}")
+        print(f"   Neurons per hidden group: {self.hidden_dim // self.num_hidden_groups}")
         
         # Copy pretrained weights
-        self.fc1 = nn.Linear(self.input_dim, self.hidden1_dim)
-        self.fc2 = nn.Linear(self.hidden1_dim, self.hidden2_dim)
-        self.fc3 = nn.Linear(self.hidden2_dim, self.hidden3_dim)
-        self.fc4 = nn.Linear(self.hidden3_dim, self.hidden4_dim)
-        self.fc5 = nn.Linear(self.hidden4_dim, self.hidden5_dim)
-        self.fc6 = nn.Linear(self.hidden5_dim, self.output_dim)
+        self.fc1 = nn.Linear(self.input_dim, self.hidden_dim)
+        self.fc2 = nn.Linear(self.hidden_dim, self.output_dim)
         
         with torch.no_grad():
             self.fc1.weight.copy_(pretrained_mlp.fc1.weight)
             self.fc1.bias.copy_(pretrained_mlp.fc1.bias)
             self.fc2.weight.copy_(pretrained_mlp.fc2.weight)
             self.fc2.bias.copy_(pretrained_mlp.fc2.bias)
-            self.fc3.weight.copy_(pretrained_mlp.fc3.weight)
-            self.fc3.bias.copy_(pretrained_mlp.fc3.bias)
-            self.fc4.weight.copy_(pretrained_mlp.fc4.weight)
-            self.fc4.bias.copy_(pretrained_mlp.fc4.bias)
-            self.fc5.weight.copy_(pretrained_mlp.fc5.weight)
-            self.fc5.bias.copy_(pretrained_mlp.fc5.bias)
-            self.fc6.weight.copy_(pretrained_mlp.fc6.weight)
-            self.fc6.bias.copy_(pretrained_mlp.fc6.bias)
         
-        # Create pathway decomposition
+                # Create pathway decomposition
         self._create_pathway_structure()
         
-        # Pathway router network
+        # Enhanced pathway router network for more pathways
         self.pathway_router = nn.Sequential(
             nn.Linear(self.input_dim, self.config['router_hidden_size']),
             nn.ReLU(),
             nn.Dropout(self.config['router_dropout']),
-            nn.Linear(self.config['router_hidden_size'], self.num_pathways)
+            nn.Linear(self.config['router_hidden_size'], 256),  # Additional layer
+            nn.ReLU(),
+            nn.Linear(256, self.num_pathways)
         )
         
         # Global Load Balancing statistics
@@ -148,33 +112,17 @@ class GLBLPathwayMLP(nn.Module):
         input_groups = self._create_spatial_regions(28, 28, self.num_input_regions)
         self.register_buffer('input_groups_indices', input_groups)
         
-        # Hidden layer neuron groups
-        hidden1_groups = self._create_neuron_groups(self.hidden1_dim, self.num_hidden1_groups)
-        self.register_buffer('hidden1_groups_indices', hidden1_groups)
-        
-        hidden2_groups = self._create_neuron_groups(self.hidden2_dim, self.num_hidden2_groups)
-        self.register_buffer('hidden2_groups_indices', hidden2_groups)
-        
-        hidden3_groups = self._create_neuron_groups(self.hidden3_dim, self.num_hidden3_groups)
-        self.register_buffer('hidden3_groups_indices', hidden3_groups)
-        
-        hidden4_groups = self._create_neuron_groups(self.hidden4_dim, self.num_hidden4_groups)
-        self.register_buffer('hidden4_groups_indices', hidden4_groups)
-        
-        hidden5_groups = self._create_neuron_groups(self.hidden5_dim, self.num_hidden5_groups)
-        self.register_buffer('hidden5_groups_indices', hidden5_groups)
+        # Hidden layer neuron groups (fine-grained with 8 groups)
+        hidden_groups = self._create_neuron_groups(self.hidden_dim, self.num_hidden_groups)
+        self.register_buffer('hidden_groups_indices', hidden_groups)
         
         # Output class groups
         output_groups = self._create_neuron_groups(self.output_dim, self.num_output_groups)
         self.register_buffer('output_groups_indices', output_groups)
         
-        print(f"✅ Created pathway structure:")
+        print(f"✅ Created fine-grained pathway structure:")
         print(f"   Input regions: {input_groups.shape}")
-        print(f"   Hidden1 groups: {hidden1_groups.shape}")
-        print(f"   Hidden2 groups: {hidden2_groups.shape}")
-        print(f"   Hidden3 groups: {hidden3_groups.shape}")
-        print(f"   Hidden4 groups: {hidden4_groups.shape}")
-        print(f"   Hidden5 groups: {hidden5_groups.shape}")
+        print(f"   Hidden groups: {hidden_groups.shape}")
         print(f"   Output groups: {output_groups.shape}")
     
     def _create_spatial_regions(self, height, width, num_regions):
@@ -307,76 +255,47 @@ class GLBLPathwayMLP(nn.Module):
         
         pathway_idx = 0
         for i in range(self.num_input_regions):
-            for j in range(self.num_hidden1_groups):
-                for k in range(self.num_hidden2_groups):
-                    for l in range(self.num_hidden3_groups):
-                        for m in range(self.num_hidden4_groups):
-                            for n in range(self.num_hidden5_groups):
-                                for o in range(self.num_output_groups):
-                                    
-                                    # Get pathway activation weights
-                                    weights = pathway_weights[:, pathway_idx].unsqueeze(1)
-                                    
-                                    # Skip computation if pathway not used
-                                    if weights.sum() < 1e-6:
-                                        pathway_idx += 1
-                                        continue
-                                    
-                                    # Get pathway indices
-                                    input_indices = self.input_groups_indices[i]
-                                    hidden1_indices = self.hidden1_groups_indices[j]
-                                    hidden2_indices = self.hidden2_groups_indices[k]
-                                    hidden3_indices = self.hidden3_groups_indices[l]
-                                    hidden4_indices = self.hidden4_groups_indices[m]
-                                    hidden5_indices = self.hidden5_groups_indices[n]
-                                    output_indices = self.output_groups_indices[o]
-                                    
-                                    # Extract pathway-specific weights and inputs
-                                    input_subset = x_flat[:, input_indices]
-                                    
-                                    # Layer 1: input → hidden1
-                                    W1_subset = self.fc1.weight[hidden1_indices][:, input_indices]
-                                    b1_subset = self.fc1.bias[hidden1_indices]
-                                    hidden1_output = F.gelu(F.linear(input_subset, W1_subset, b1_subset))
-                                    
-                                    # Layer 2: hidden1 → hidden2
-                                    W2_subset = self.fc2.weight[hidden2_indices][:, hidden1_indices]
-                                    b2_subset = self.fc2.bias[hidden2_indices]
-                                    hidden2_output = F.gelu(F.linear(hidden1_output, W2_subset, b2_subset))
-                                    
-                                    # Layer 3: hidden2 → hidden3
-                                    W3_subset = self.fc3.weight[hidden3_indices][:, hidden2_indices]
-                                    b3_subset = self.fc3.bias[hidden3_indices]
-                                    hidden3_output = F.gelu(F.linear(hidden2_output, W3_subset, b3_subset))
-                                    
-                                    # Layer 4: hidden3 → hidden4
-                                    W4_subset = self.fc4.weight[hidden4_indices][:, hidden3_indices]
-                                    b4_subset = self.fc4.bias[hidden4_indices]
-                                    hidden4_output = F.gelu(F.linear(hidden3_output, W4_subset, b4_subset))
-                                    
-                                    # Layer 5: hidden4 → hidden5
-                                    W5_subset = self.fc5.weight[hidden5_indices][:, hidden4_indices]
-                                    b5_subset = self.fc5.bias[hidden5_indices]
-                                    hidden5_output = F.gelu(F.linear(hidden4_output, W5_subset, b5_subset))
-                                    
-                                    # Layer 6: hidden5 → output
-                                    W6_subset = self.fc6.weight[output_indices][:, hidden5_indices]
-                                    b6_subset = self.fc6.bias[output_indices]
-                                    pathway_output = F.linear(hidden5_output, W6_subset, b6_subset)
-                                    
-                                    # Accumulate weighted pathway output
-                                    output[:, output_indices] += pathway_output * weights
-                                    
-                                    # Record activations for analysis
-                                    if record_activations and true_labels is not None:
-                                        self._record_pathway_activations(
-                                            pathway_idx, i, j, k, l, m, n, o, weights, 
-                                            hidden1_output, hidden2_output, hidden3_output, 
-                                            hidden4_output, hidden5_output, pathway_output, 
-                                            true_labels, batch_size
-                                        )
-                                    
-                                    pathway_idx += 1
+            for j in range(self.num_hidden_groups):
+                for k in range(self.num_output_groups):
+                    
+                    # Get pathway activation weights
+                    weights = pathway_weights[:, pathway_idx].unsqueeze(1)
+                    
+                    # Skip computation if pathway not used
+                    if weights.sum() < 1e-6:
+                        pathway_idx += 1
+                        continue
+                    
+                    # Get pathway indices
+                    input_indices = self.input_groups_indices[i]
+                    hidden_indices = self.hidden_groups_indices[j]
+                    output_indices = self.output_groups_indices[k]
+                    
+                    # Extract pathway-specific weights and inputs
+                    input_subset = x_flat[:, input_indices]
+                    
+                    # Layer 1: input → hidden
+                    W1_subset = self.fc1.weight[hidden_indices][:, input_indices]
+                    b1_subset = self.fc1.bias[hidden_indices]
+                    hidden_output = F.gelu(F.linear(input_subset, W1_subset, b1_subset))
+                    
+                    # Layer 2: hidden → output
+                    W2_subset = self.fc2.weight[output_indices][:, hidden_indices]
+                    b2_subset = self.fc2.bias[output_indices]
+                    pathway_output = F.linear(hidden_output, W2_subset, b2_subset)
+                    
+                    # Accumulate weighted pathway output
+                    output[:, output_indices] += pathway_output * weights
+                    
+                    # Record activations for analysis
+                    if record_activations and true_labels is not None:
+                        self._record_pathway_activations(
+                            pathway_idx, i, j, k, weights, 
+                            hidden_output, pathway_output, 
+                            true_labels, batch_size
+                        )
+                    
+                    pathway_idx += 1
         
         # Update statistics
         if self.training:
@@ -390,11 +309,10 @@ class GLBLPathwayMLP(nn.Module):
         
         return output
     
-    def _record_pathway_activations(self, pathway_idx, i, j, k, l, m, n, o, weights, 
-                                  hidden1_output, hidden2_output, hidden3_output, 
-                                  hidden4_output, hidden5_output, pathway_output, true_labels, batch_size):
+    def _record_pathway_activations(self, pathway_idx, i, j, k, weights, 
+                                  hidden_output, pathway_output, true_labels, batch_size):
         """Record pathway activations for analysis"""
-        pathway_name = f"Input{i}_H1{j}_H2{k}_H3{l}_H4{m}_H5{n}_Output{o}"
+        pathway_name = f"Input{i}_Hidden{j}_Output{k}"
         
         for sample_idx in range(batch_size):
             if weights[sample_idx] > 1e-3:  # Only record active pathways
@@ -402,11 +320,7 @@ class GLBLPathwayMLP(nn.Module):
                     'pathway_idx': pathway_idx,
                     'true_class': true_labels[sample_idx].item(),
                     'pathway_weight': weights[sample_idx].item(),
-                    'hidden1_activation': hidden1_output[sample_idx].mean().item(),
-                    'hidden2_activation': hidden2_output[sample_idx].mean().item(),
-                    'hidden3_activation': hidden3_output[sample_idx].mean().item(),
-                    'hidden4_activation': hidden4_output[sample_idx].mean().item(),
-                    'hidden5_activation': hidden5_output[sample_idx].mean().item(),
+                    'hidden_activation': hidden_output[sample_idx].mean().item(),
                     'output_activation': pathway_output[sample_idx].max().item()
                 })
     
@@ -672,13 +586,14 @@ class GLBLTrainer:
     def __init__(self, model, config=None):
         self.model = model
         
+        # Updated default configuration for fine-grained training
         default_config = {
-            'learning_rate': 0.0005,
-            'glbl_weight_start': 0.01,
-            'glbl_weight_end': 0.05,
+            'learning_rate': 0.001,        # CHANGED: Higher learning rate for more pathways
+            'glbl_weight_start': 0.005,    # CHANGED: Lower starting weight (gentler regularization)
+            'glbl_weight_end': 0.02,       # CHANGED: Lower ending weight
             'glbl_weight_schedule': 'linear',
-            'top_k': 16,  # Optimized for 256 pathways (4×2×2×2×2×2×4)
-            'temperature': 1.0,
+            'top_k': 16,                   # CHANGED: Higher top_k for 128 pathways (was 12 for 64)
+            'temperature': 0.8,            # CHANGED: More focused selection
             'batch_size': 128,
             'subset_size': 15000
         }
@@ -689,6 +604,12 @@ class GLBLTrainer:
             lr=self.config['learning_rate']
         )
         self.criterion = nn.CrossEntropyLoss()
+        
+        print(f"🔧 Fine-Grained Trainer Configuration:")
+        print(f"   Learning Rate: {self.config['learning_rate']}")
+        print(f"   GLBL Weight: {self.config['glbl_weight_start']} → {self.config['glbl_weight_end']}")
+        print(f"   Top-K Pathways: {self.config['top_k']}")
+        print(f"   Temperature: {self.config['temperature']}")
         
     def _get_glbl_weight(self, epoch, max_epochs):
         """Get GLBL weight based on schedule"""
@@ -1528,6 +1449,405 @@ def run_comparison_experiment():
     
     return comparison_results
 
+def analyze_fine_grained_specialization(pathway_mlp, test_loader, max_samples=2000):
+    """Comprehensive analysis of fine-grained pathway specialization"""
+    print(f"\n🔬 Analyzing Fine-Grained Pathway Specialization...")
+    print(f"   Total pathways: {pathway_mlp.num_pathways}")
+    print(f"   Hidden groups: {pathway_mlp.num_hidden_groups}")
+    print(f"   Neurons per group: {pathway_mlp.hidden_dim // pathway_mlp.num_hidden_groups}")
+    
+    # Clear previous activations
+    pathway_mlp.pathway_activations.clear()
+    
+    # Collect pathway activations
+    pathway_mlp.eval()
+    samples_processed = 0
+    
+    with torch.no_grad():
+        for data, target in test_loader:
+            if samples_processed >= max_samples:
+                break
+                
+            data, target = data.to(device), target.to(device)
+            remaining_samples = min(len(data), max_samples - samples_processed)
+            
+            if remaining_samples < len(data):
+                data = data[:remaining_samples]
+                target = target[:remaining_samples]
+            
+            _ = pathway_mlp(data, record_activations=True, true_labels=target)
+            samples_processed += len(data)
+    
+    # Analyze pathway specialization
+    pathway_specializations = {}
+    hidden_group_specializations = defaultdict(lambda: defaultdict(int))
+    input_region_specializations = defaultdict(lambda: defaultdict(int))
+    
+    for pathway_name, activations in pathway_mlp.pathway_activations.items():
+        if len(activations) > 5:  # Minimum usage threshold
+            classes = [act['true_class'] for act in activations]
+            class_counts = np.bincount(classes, minlength=10)
+            class_dist = class_counts / class_counts.sum()
+            
+            purity = np.max(class_dist)
+            dominant_class = np.argmax(class_dist)
+            
+            pathway_specializations[pathway_name] = {
+                'purity': purity,
+                'dominant_class': dominant_class,
+                'usage': len(activations),
+                'avg_weight': np.mean([act['pathway_weight'] for act in activations]),
+                'class_distribution': dict(enumerate(class_counts))
+            }
+            
+            # Extract components from pathway name: Input{i}_Hidden{j}_Output{k}
+            parts = pathway_name.split('_')
+            input_region = parts[0]  # Input{i}
+            hidden_group = parts[1]  # Hidden{j}
+            
+            # Aggregate by hidden group and input region
+            for class_idx, count in enumerate(class_counts):
+                if count > 0:
+                    hidden_group_specializations[hidden_group][class_idx] += count
+                    input_region_specializations[input_region][class_idx] += count
+    
+    # Results summary
+    if pathway_specializations:
+        avg_purity = np.mean([s['purity'] for s in pathway_specializations.values()])
+        high_purity = sum(1 for s in pathway_specializations.values() if s['purity'] > 0.4)
+        very_high_purity = sum(1 for s in pathway_specializations.values() if s['purity'] > 0.7)
+        
+        print(f"\n📊 Fine-Grained Pathway Specialization Results:")
+        print(f"   Samples analyzed: {samples_processed}")
+        print(f"   Active pathways: {len(pathway_specializations)}/{pathway_mlp.num_pathways}")
+        print(f"   Pathway utilization: {len(pathway_specializations)/pathway_mlp.num_pathways*100:.1f}%")
+        print(f"   Average purity: {avg_purity:.3f}")
+        print(f"   High purity pathways (>40%): {high_purity}")
+        print(f"   Very high purity pathways (>70%): {very_high_purity}")
+        
+        # Top specialized pathways
+        sorted_pathways = sorted(
+            pathway_specializations.items(), 
+            key=lambda x: x[1]['purity'], 
+            reverse=True
+        )
+        
+        print(f"\n🏆 Top 10 Most Specialized Pathways:")
+        for i, (pathway, stats) in enumerate(sorted_pathways[:10]):
+            print(f"   {i+1:2d}. {pathway}:")
+            print(f"       Purity: {stats['purity']:.3f} → digit {stats['dominant_class']}")
+            print(f"       Usage: {stats['usage']} samples, Avg weight: {stats['avg_weight']:.3f}")
+    
+    # Analyze hidden group specialization
+    print(f"\n🧠 Hidden Group Specialization Analysis:")
+    for hidden_group in sorted(hidden_group_specializations.keys()):
+        class_counts = hidden_group_specializations[hidden_group]
+        total = sum(class_counts.values())
+        if total > 50:  # Only analyze groups with substantial usage
+            sorted_classes = sorted(class_counts.items(), key=lambda x: x[1], reverse=True)
+            top_classes = sorted_classes[:3]
+            
+            print(f"   {hidden_group} (Total: {total} samples):")
+            for class_idx, count in top_classes:
+                percentage = (count / total) * 100
+                print(f"     Digit {class_idx}: {percentage:.1f}% ({count} samples)")
+    
+    # Analyze input region specialization  
+    print(f"\n🗺️ Input Region Specialization Analysis:")
+    region_names = ["Top-Left", "Top-Right", "Bottom-Left", "Bottom-Right"]
+    for i, input_region in enumerate(sorted(input_region_specializations.keys())):
+        class_counts = input_region_specializations[input_region]
+        total = sum(class_counts.values())
+        if total > 50:
+            sorted_classes = sorted(class_counts.items(), key=lambda x: x[1], reverse=True)
+            top_classes = sorted_classes[:3]
+            
+            region_name = region_names[i] if i < len(region_names) else input_region
+            print(f"   {region_name} ({input_region}, Total: {total} samples):")
+            for class_idx, count in top_classes:
+                percentage = (count / total) * 100
+                print(f"     Digit {class_idx}: {percentage:.1f}% ({count} samples)")
+    
+    return pathway_specializations, hidden_group_specializations, input_region_specializations
+
+def create_fine_grained_visualization(pathway_specializations, hidden_group_specs, 
+                                    input_region_specs, model_name="Fine-Grained-GLBL"):
+    """Create comprehensive visualization for fine-grained pathway analysis"""
+    if not pathway_specializations:
+        print("⚠️ No specialization data to visualize")
+        return
+    
+    fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+    fig.suptitle(f'{model_name} Fine-Grained Pathway Analysis', fontsize=18, fontweight='bold')
+    
+    # Extract data
+    purities = [stats['purity'] for stats in pathway_specializations.values()]
+    usages = [stats['usage'] for stats in pathway_specializations.values()]
+    dominant_classes = [stats['dominant_class'] for stats in pathway_specializations.values()]
+    
+    # 1. Pathway Purity Distribution (more bins for finer detail)
+    axes[0, 0].hist(purities, bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+    axes[0, 0].axvline(np.mean(purities), color='red', linestyle='--', linewidth=2,
+                       label=f'Mean: {np.mean(purities):.3f}')
+    axes[0, 0].axvline(np.median(purities), color='orange', linestyle='--', linewidth=2,
+                       label=f'Median: {np.median(purities):.3f}')
+    axes[0, 0].set_xlabel('Pathway Purity', fontsize=12)
+    axes[0, 0].set_ylabel('Number of Pathways', fontsize=12)
+    axes[0, 0].set_title('Fine-Grained Pathway Purity Distribution', fontsize=14, fontweight='bold')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 2. Usage Distribution with statistics
+    axes[0, 1].hist(usages, bins=25, alpha=0.7, color='lightgreen', edgecolor='black')
+    axes[0, 1].axvline(np.mean(usages), color='red', linestyle='--', linewidth=2,
+                       label=f'Mean: {np.mean(usages):.1f}')
+    axes[0, 1].axvline(np.median(usages), color='orange', linestyle='--', linewidth=2,
+                       label=f'Median: {np.median(usages):.1f}')
+    axes[0, 1].set_xlabel('Usage Count', fontsize=12)
+    axes[0, 1].set_ylabel('Number of Pathways', fontsize=12)
+    axes[0, 1].set_title('Fine-Grained Usage Distribution', fontsize=14, fontweight='bold')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # 3. Hidden Group Specialization Bar Chart
+    if hidden_group_specs:
+        groups = sorted(hidden_group_specs.keys())
+        group_purities = []
+        group_usages = []
+        
+        for group in groups:
+            class_counts = list(hidden_group_specs[group].values())
+            total_usage = sum(class_counts)
+            if total_usage > 0:
+                class_probs = np.array(class_counts) / total_usage
+                purity = np.max(class_probs)
+                group_purities.append(purity)
+                group_usages.append(total_usage)
+            else:
+                group_purities.append(0)
+                group_usages.append(0)
+        
+        if group_purities:
+            bars = axes[0, 2].bar(range(len(groups)), group_purities, 
+                                 alpha=0.7, color='orange', edgecolor='black')
+            axes[0, 2].set_xlabel('Hidden Group', fontsize=12)
+            axes[0, 2].set_ylabel('Group Purity', fontsize=12)
+            axes[0, 2].set_title('Hidden Group Specialization', fontsize=14, fontweight='bold')
+            axes[0, 2].set_xticks(range(len(groups)))
+            axes[0, 2].set_xticklabels([g.replace('Hidden', 'H') for g in groups], rotation=45)
+            axes[0, 2].grid(True, alpha=0.3)
+            
+            # Add usage info as text on bars
+            for i, (bar, usage) in enumerate(zip(bars, group_usages)):
+                if usage > 0:
+                    axes[0, 2].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, 
+                                   f'{usage}', ha='center', va='bottom', fontsize=8)
+    
+    # 4. Enhanced Spatial Specialization Heatmap
+    region_class_matrix = np.zeros((4, 10))
+    
+    for pathway_name, stats in pathway_specializations.items():
+        if 'Input' in pathway_name:
+            region_idx = int(pathway_name.split('_')[0].replace('Input', ''))
+            for class_idx, count in stats['class_distribution'].items():
+                region_class_matrix[region_idx, class_idx] += count * stats['purity']
+    
+    # Normalize by row
+    for i in range(4):
+        row_sum = region_class_matrix[i].sum()
+        if row_sum > 0:
+            region_class_matrix[i] /= row_sum
+    
+    im = axes[1, 0].imshow(region_class_matrix, cmap='YlOrRd', aspect='auto')
+    axes[1, 0].set_xlabel('Digit Class', fontsize=12)
+    axes[1, 0].set_ylabel('Input Region', fontsize=12)
+    axes[1, 0].set_title('Spatial Region → Digit Specialization', fontsize=14, fontweight='bold')
+    axes[1, 0].set_xticks(range(10))
+    axes[1, 0].set_yticks(range(4))
+    axes[1, 0].set_yticklabels(['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'])
+    
+    # Add text annotations for strong specializations
+    for i in range(4):
+        for j in range(10):
+            if region_class_matrix[i, j] > 0.2:  # Only show strong specializations
+                axes[1, 0].text(j, i, f'{region_class_matrix[i, j]:.2f}', 
+                               ha='center', va='center', fontweight='bold', fontsize=8)
+    
+    cbar = plt.colorbar(im, ax=axes[1, 0])
+    cbar.set_label('Specialization Strength', fontsize=10)
+    
+    # 5. Enhanced Usage vs Specialization Scatter
+    scatter = axes[1, 1].scatter(usages, purities, c=dominant_classes, 
+                                cmap='tab10', alpha=0.7, s=60, edgecolors='black', linewidth=0.5)
+    axes[1, 1].set_xlabel('Usage Count', fontsize=12)
+    axes[1, 1].set_ylabel('Purity', fontsize=12)
+    axes[1, 1].set_title('Usage vs Specialization by Dominant Class', fontsize=14, fontweight='bold')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    # Add trend line
+    if len(usages) > 1:
+        z = np.polyfit(usages, purities, 1)
+        p = np.poly1d(z)
+        axes[1, 1].plot(sorted(usages), p(sorted(usages)), "r--", alpha=0.8, linewidth=2)
+    
+    cbar2 = plt.colorbar(scatter, ax=axes[1, 1])
+    cbar2.set_label('Dominant Digit Class', fontsize=10)
+    
+    # 6. Pathway Performance Analysis
+    thresholds = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    counts = [sum(1 for p in purities if p > t) for t in thresholds]
+    percentages = [c/len(purities)*100 for c in counts]
+    
+    bars = axes[1, 2].bar(range(len(thresholds)), counts, alpha=0.7, color='purple', edgecolor='black')
+    axes[1, 2].set_xlabel('Purity Threshold', fontsize=12)
+    axes[1, 2].set_ylabel('Number of Pathways', fontsize=12)
+    axes[1, 2].set_title('Pathways Above Purity Thresholds', fontsize=14, fontweight='bold')
+    axes[1, 2].set_xticks(range(len(thresholds)))
+    axes[1, 2].set_xticklabels([f'{t:.1f}' for t in thresholds])
+    axes[1, 2].grid(True, alpha=0.3)
+    
+    # Add percentage labels on bars
+    for i, (bar, count, pct) in enumerate(zip(bars, counts, percentages)):
+        axes[1, 2].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5, 
+                       f'{count}\n({pct:.1f}%)', ha='center', va='bottom', fontsize=9)
+    
+    plt.tight_layout()
+    plt.savefig(f'{model_name.lower()}_analysis.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print(f"📊 Fine-grained visualization saved as '{model_name.lower()}_analysis.png'")
+    
+    # Print summary statistics
+    print(f"\n📈 Visualization Summary:")
+    print(f"   Pathways > 70% purity: {sum(1 for p in purities if p > 0.7)}/{len(purities)}")
+    print(f"   Pathways > 50% purity: {sum(1 for p in purities if p > 0.5)}/{len(purities)}")
+    print(f"   Mean usage: {np.mean(usages):.1f} samples")
+    print(f"   Usage std: {np.std(usages):.1f} samples")
+
+def run_complete_experiment():
+    """Run the complete fine-grained GLBL pathway experiment"""
+    print("🚀 COMPLETE FINE-GRAINED GLBL PATHWAY EXPERIMENT")
+    print("=" * 80)
+    
+    # Step 1: Train standard MLP baseline
+    print("📋 Step 1: Training Standard MLP Baseline...")
+    standard_mlp, test_loader = train_standard_mlp()
+    standard_selectivity = measure_neuron_selectivity(standard_mlp, test_loader)
+    
+    # Step 2: Create fine-grained GLBL pathway MLP
+    print(f"\n🛤️ Step 2: Creating Fine-Grained GLBL Pathway MLP...")
+    fine_grained_config = {
+        'num_input_regions': 4,
+        'num_hidden_groups': 8,     # Fine-grained: 64 neurons per group
+        'num_output_groups': 4,
+        'router_hidden_size': 512,  # Larger router for more pathways
+        'router_dropout': 0.1
+    }
+    pathway_mlp = GLBLPathwayMLP(standard_mlp, config=fine_grained_config).to(device)
+    
+    # Step 3: Prepare training data
+    print(f"\n📊 Step 3: Preparing Training Data...")
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
+    train_dataset = torchvision.datasets.MNIST('./data', train=True, transform=transform)
+    subset_indices = torch.randperm(len(train_dataset))[:15000]
+    train_subset = torch.utils.data.Subset(train_dataset, subset_indices)
+    train_loader = torch.utils.data.DataLoader(train_subset, batch_size=128, shuffle=True)
+    
+    # Step 4: Train with fine-grained configuration
+    print(f"\n🔄 Step 4: Training Fine-Grained GLBL Pathway MLP...")
+    trainer_config = {
+        'learning_rate': 0.001,
+        'glbl_weight_start': 0.005,
+        'glbl_weight_end': 0.02,
+        'top_k': 16,                # Higher top_k for 128 pathways
+        'temperature': 0.8          # More focused selection
+    }
+    trainer = GLBLTrainer(pathway_mlp, config=trainer_config)
+    trainer.train(train_loader, epochs=10, verbose=True)  # More epochs for convergence
+    
+    # Step 5: Evaluate performance
+    print(f"\n📈 Step 5: Evaluating Model Performance...")
+    standard_accuracy = evaluate_model(standard_mlp, test_loader)
+    pathway_accuracy = evaluate_model(pathway_mlp, test_loader)
+    
+    # Step 6: Fine-grained specialization analysis
+    print(f"\n🔬 Step 6: Analyzing Pathway Specialization...")
+    pathway_specializations, hidden_group_specs, input_region_specs = analyze_fine_grained_specialization(
+        pathway_mlp, test_loader, max_samples=2000
+    )
+    
+    # Step 7: Create comprehensive visualizations
+    print(f"\n📊 Step 7: Creating Visualizations...")
+    create_fine_grained_visualization(
+        pathway_specializations, hidden_group_specs, input_region_specs, "Fine-Grained-GLBL"
+    )
+    
+    # Step 8: Comprehensive results analysis
+    print(f"\n🎉 FINE-GRAINED EXPERIMENT RESULTS:")
+    print("=" * 70)
+    print(f"🏆 Performance Results:")
+    print(f"   Standard MLP accuracy: {standard_accuracy:.2f}%")
+    print(f"   Fine-Grained GLBL accuracy: {pathway_accuracy:.2f}%")
+    print(f"   Performance gap: {standard_accuracy - pathway_accuracy:.2f}%")
+    print(f"   Target gap (vs 96%): {96.0 - pathway_accuracy:.2f}%")
+    
+    print(f"\n🧠 Specialization Results:")
+    print(f"   Standard neuron selectivity: {np.mean(standard_selectivity):.3f}")
+    
+    if pathway_specializations:
+        avg_pathway_purity = np.mean([s['purity'] for s in pathway_specializations.values()])
+        improvement = avg_pathway_purity / np.mean(standard_selectivity)
+        high_purity_count = sum(1 for s in pathway_specializations.values() if s['purity'] > 0.7)
+        
+        print(f"   Fine-grained pathway purity: {avg_pathway_purity:.3f}")
+        print(f"   Specialization improvement: {improvement:.1f}x")
+        print(f"   High-purity pathways (>70%): {high_purity_count}")
+        print(f"   Total active pathways: {len(pathway_specializations)}/{pathway_mlp.num_pathways}")
+        print(f"   Pathway utilization: {len(pathway_specializations)/pathway_mlp.num_pathways*100:.1f}%")
+    
+    # Step 9: Training dynamics analysis
+    print(f"\n📈 Training Dynamics:")
+    pathway_analysis = pathway_mlp.get_pathway_analysis()
+    print(f"   Final GLBL loss: {pathway_analysis.get('final_glbl_loss', 0):.4f}")
+    print(f"   Average pathway entropy: {pathway_analysis.get('avg_pathway_entropy', 0):.4f}")
+    print(f"   Average active pathways per batch: {pathway_analysis.get('avg_active_pathways', 0):.1f}")
+    
+    return {
+        'standard_mlp': standard_mlp,
+        'pathway_mlp': pathway_mlp,
+        'standard_accuracy': standard_accuracy,
+        'pathway_accuracy': pathway_accuracy,
+        'standard_selectivity': standard_selectivity,
+        'pathway_specializations': pathway_specializations,
+        'hidden_group_specializations': hidden_group_specs,
+        'input_region_specializations': input_region_specs,
+        'pathway_analysis': pathway_analysis
+    }
+
 if __name__ == "__main__":
-    # Run the comparison experiment: Global vs Layerwise
-    results = run_comparison_experiment()
+    # Run the fine-grained experiment
+    print("🌟 Starting Fine-Grained GLBL Pathway Experiment")
+    print("🎯 Target: Achieve >94% accuracy with strong pathway specialization")
+    print()
+    
+    results = run_complete_experiment()
+    
+    # Additional analysis
+    print(f"\n💡 Key Insights:")
+    if results['pathway_accuracy'] > 94:
+        print(f"   ✅ Successfully achieved high performance ({results['pathway_accuracy']:.2f}%)")
+    else:
+        print(f"   ⚠️ Performance gap remains: {94 - results['pathway_accuracy']:.2f}% below target")
+    
+    if results['pathway_specializations']:
+        avg_purity = np.mean([s['purity'] for s in results['pathway_specializations'].values()])
+        if avg_purity > 0.4:
+            print(f"   ✅ Strong pathway specialization achieved ({avg_purity:.3f} average purity)")
+        else:
+            print(f"   ⚠️ Pathway specialization needs improvement ({avg_purity:.3f} average purity)")
+    
+    print(f"\n🎯 Fine-grained pathways (4×8×4 = 128) vs original (4×4×4 = 64)")
+    print(f"   More pathways should enable finer specialization with better load balancing")
