@@ -358,7 +358,8 @@ class GLBLTrainer:
             'top_k': 12,
             'temperature': 1.0,
             'batch_size': 128,
-            'subset_size': 15000
+            'subset_size': 15000,
+            'report_every': 2  # Report every N epochs
         }
         self.config = {**default_config, **(config or {})}
         
@@ -367,6 +368,16 @@ class GLBLTrainer:
             lr=self.config['learning_rate']
         )
         self.criterion = nn.CrossEntropyLoss()
+        
+        # Training history
+        self.training_history = {
+            'epoch': [],
+            'train_loss': [],
+            'train_accuracy': [],
+            'classification_loss': [],
+            'glbl_loss': [],
+            'total_loss': []
+        }
         
     def _get_glbl_weight(self, epoch, max_epochs):
         """Get GLBL weight based on schedule"""
@@ -378,13 +389,41 @@ class GLBLTrainer:
         else:
             return self.config['glbl_weight_start']
     
-    def train(self, train_loader, epochs=5, verbose=True):
-        """Train the GLBL pathway MLP"""
+    def _evaluate_accuracy(self, data_loader, max_batches=None):
+        """Evaluate model accuracy on given data loader"""
+        self.model.eval()
+        correct = 0
+        total = 0
+        batch_count = 0
+        
+        with torch.no_grad():
+            for data, target in data_loader:
+                if max_batches and batch_count >= max_batches:
+                    break
+                    
+                data, target = data.to(device), target.to(device)
+                outputs = self.model(data)
+                _, predicted = torch.max(outputs.data, 1)
+                total += target.size(0)
+                correct += (predicted == target).sum().item()
+                batch_count += 1
+        
         self.model.train()
+        return 100 * correct / total if total > 0 else 0.0
+    
+    def train(self, train_loader, test_loader=None, epochs=5, verbose=True):
+        """Train the GLBL pathway MLP with enhanced reporting"""
+        self.model.train()
+        
+        print(f"🚀 Starting GLBL Training for {epochs} epochs")
+        print(f"📊 Reporting every {self.config['report_every']} epochs")
+        print("=" * 60)
         
         for epoch in range(epochs):
             glbl_weight = self._get_glbl_weight(epoch, epochs)
             epoch_losses = {'classification': [], 'glbl': [], 'total': []}
+            epoch_correct = 0
+            epoch_total = 0
             
             for batch_idx, (data, target) in enumerate(train_loader):
                 data, target = data.to(device), target.to(device)
@@ -413,34 +452,78 @@ class GLBLTrainer:
                 epoch_losses['glbl'].append(glbl_loss.item())
                 epoch_losses['total'].append(total_loss.item())
                 
-                # Verbose logging
-                if verbose and batch_idx % 20 == 0:
-                    print(f'Epoch {epoch}, Batch {batch_idx}:')
-                    print(f'  Classification: {classification_loss.item():.4f}')
-                    print(f'  GLBL (w={glbl_weight:.3f}): {glbl_loss.item():.4f}')
-                    print(f'  Total: {total_loss.item():.4f}')
+                # Track accuracy
+                _, predicted = torch.max(output.data, 1)
+                epoch_total += target.size(0)
+                epoch_correct += (predicted == target).sum().item()
+                
+                # Batch-level verbose logging
+                if verbose and batch_idx % 50 == 0:
+                    batch_accuracy = 100 * (predicted == target).sum().item() / target.size(0)
+                    print(f'Epoch {epoch+1}/{epochs}, Batch {batch_idx:3d}: '
+                          f'Loss={total_loss.item():.4f}, '
+                          f'Acc={batch_accuracy:.1f}%')
             
-            # Epoch summary
-            if verbose:
-                avg_class_loss = np.mean(epoch_losses['classification'])
-                avg_glbl_loss = np.mean(epoch_losses['glbl'])
-                avg_total_loss = np.mean(epoch_losses['total'])
-                print(f'Epoch {epoch} Summary:')
-                print(f'  Avg Classification: {avg_class_loss:.4f}')
-                print(f'  Avg GLBL: {avg_glbl_loss:.4f}')
-                print(f'  Avg Total: {avg_total_loss:.4f}')
-                print()
+            # Calculate epoch metrics
+            avg_class_loss = np.mean(epoch_losses['classification'])
+            avg_glbl_loss = np.mean(epoch_losses['glbl'])
+            avg_total_loss = np.mean(epoch_losses['total'])
+            train_accuracy = 100 * epoch_correct / epoch_total
+            
+            # Store training history
+            self.training_history['epoch'].append(epoch + 1)
+            self.training_history['train_loss'].append(avg_total_loss)
+            self.training_history['train_accuracy'].append(train_accuracy)
+            self.training_history['classification_loss'].append(avg_class_loss)
+            self.training_history['glbl_loss'].append(avg_glbl_loss)
+            self.training_history['total_loss'].append(avg_total_loss)
+            
+            # Regular reporting
+            if (epoch + 1) % self.config['report_every'] == 0 or epoch == epochs - 1:
+                print(f"\n📊 EPOCH {epoch+1}/{epochs} REPORT:")
+                print(f"   Training Loss: {avg_total_loss:.4f}")
+                print(f"   Training Accuracy: {train_accuracy:.2f}%")
+                print(f"   Classification Loss: {avg_class_loss:.4f}")
+                print(f"   GLBL Loss (w={glbl_weight:.3f}): {avg_glbl_loss:.4f}")
+                
+                # Test accuracy if test loader provided
+                if test_loader is not None:
+                    test_accuracy = self._evaluate_accuracy(test_loader, max_batches=20)
+                    print(f"   Test Accuracy: {test_accuracy:.2f}%")
+                
+                # Pathway statistics
+                pathway_analysis = self.model.get_pathway_analysis()
+                if pathway_analysis:
+                    print(f"   Active Pathways: {pathway_analysis.get('avg_active_pathways', 0):.1f}")
+                    print(f"   Pathway Entropy: {pathway_analysis.get('avg_pathway_entropy', 0):.3f}")
+                
+                print("-" * 60)
+            
+            # Brief epoch summary for non-reporting epochs
+            elif verbose:
+                print(f'Epoch {epoch+1}/{epochs}: '
+                      f'Loss={avg_total_loss:.4f}, '
+                      f'Acc={train_accuracy:.1f}%')
+        
+        print(f"\n✅ Training completed!")
+        print(f"📈 Final Training Accuracy: {self.training_history['train_accuracy'][-1]:.2f}%")
+        print(f"📉 Final Training Loss: {self.training_history['train_loss'][-1]:.4f}")
+        
+        return self.training_history
 
 def train_standard_mlp(config=None):
-    """Train baseline standard MLP"""
+    """Train baseline standard MLP with enhanced reporting"""
     default_config = {
         'epochs': 6,
         'learning_rate': 0.001,
-        'batch_size': 256
+        'batch_size': 256,
+        'report_every': 2  # Report every N epochs
     }
     config = {**default_config, **(config or {})}
     
     print("🎯 Training Standard MLP Baseline...")
+    print(f"📊 Reporting every {config['report_every']} epochs")
+    print("=" * 60)
     
     # Data loading
     transform = transforms.Compose([
@@ -463,8 +546,20 @@ def train_standard_mlp(config=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
     criterion = nn.CrossEntropyLoss()
     
+    # Training history
+    training_history = {
+        'epoch': [],
+        'train_loss': [],
+        'train_accuracy': [],
+        'test_accuracy': []
+    }
+    
     model.train()
     for epoch in range(config['epochs']):
+        epoch_losses = []
+        epoch_correct = 0
+        epoch_total = 0
+        
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = data.to(device), target.to(device)
             
@@ -474,14 +569,50 @@ def train_standard_mlp(config=None):
             loss.backward()
             optimizer.step()
             
-            if batch_idx % 50 == 0:
-                print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item():.4f}')
+            # Track metrics
+            epoch_losses.append(loss.item())
+            _, predicted = torch.max(output.data, 1)
+            epoch_total += target.size(0)
+            epoch_correct += (predicted == target).sum().item()
+            
+            # Batch-level reporting
+            if batch_idx % 100 == 0:
+                batch_accuracy = 100 * (predicted == target).sum().item() / target.size(0)
+                print(f'Epoch {epoch+1}/{config["epochs"]}, Batch {batch_idx:3d}: '
+                      f'Loss={loss.item():.4f}, Acc={batch_accuracy:.1f}%')
+        
+        # Calculate epoch metrics
+        avg_loss = np.mean(epoch_losses)
+        train_accuracy = 100 * epoch_correct / epoch_total
+        
+        # Store training history
+        training_history['epoch'].append(epoch + 1)
+        training_history['train_loss'].append(avg_loss)
+        training_history['train_accuracy'].append(train_accuracy)
+        
+        # Regular reporting
+        if (epoch + 1) % config['report_every'] == 0 or epoch == config['epochs'] - 1:
+            test_accuracy = evaluate_model(model, test_loader)
+            training_history['test_accuracy'].append(test_accuracy)
+            
+            print(f"\n📊 EPOCH {epoch+1}/{config['epochs']} REPORT:")
+            print(f"   Training Loss: {avg_loss:.4f}")
+            print(f"   Training Accuracy: {train_accuracy:.2f}%")
+            print(f"   Test Accuracy: {test_accuracy:.2f}%")
+            print("-" * 60)
+        else:
+            # Brief epoch summary for non-reporting epochs
+            print(f'Epoch {epoch+1}/{config["epochs"]}: '
+                  f'Loss={avg_loss:.4f}, Acc={train_accuracy:.1f}%')
     
-    # Test accuracy
-    accuracy = evaluate_model(model, test_loader)
-    print(f'✅ Standard MLP Accuracy: {accuracy:.2f}%')
+    # Final results
+    final_accuracy = evaluate_model(model, test_loader)
+    print(f'\n✅ Standard MLP Final Results:')
+    print(f'📈 Final Training Accuracy: {training_history["train_accuracy"][-1]:.2f}%')
+    print(f'📊 Final Test Accuracy: {final_accuracy:.2f}%')
+    print(f'📉 Final Training Loss: {training_history["train_loss"][-1]:.4f}')
     
-    return model, test_loader
+    return model, test_loader, training_history
 
 def evaluate_model(model, test_loader):
     """Evaluate model accuracy"""
@@ -618,6 +749,83 @@ def analyze_pathway_specialization(pathway_mlp, test_loader, max_samples=2000):
     
     return specializations
 
+def create_training_plots(standard_history, glbl_history):
+    """Create training loss and accuracy plots"""
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    fig.suptitle('Training Comparison: Standard MLP vs GLBL Pathway MLP', fontsize=16)
+    
+    # Plot 1: Training Loss Comparison
+    axes[0, 0].plot(standard_history['epoch'], standard_history['train_loss'], 
+                    'b-', label='Standard MLP', linewidth=2)
+    axes[0, 0].plot(glbl_history['epoch'], glbl_history['train_loss'], 
+                    'r-', label='GLBL MLP', linewidth=2)
+    axes[0, 0].set_xlabel('Epoch')
+    axes[0, 0].set_ylabel('Training Loss')
+    axes[0, 0].set_title('Training Loss Comparison')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Plot 2: Training Accuracy Comparison
+    axes[0, 1].plot(standard_history['epoch'], standard_history['train_accuracy'], 
+                    'b-', label='Standard MLP', linewidth=2)
+    axes[0, 1].plot(glbl_history['epoch'], glbl_history['train_accuracy'], 
+                    'r-', label='GLBL MLP', linewidth=2)
+    axes[0, 1].set_xlabel('Epoch')
+    axes[0, 1].set_ylabel('Training Accuracy (%)')
+    axes[0, 1].set_title('Training Accuracy Comparison')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Plot 3: GLBL Loss Components
+    axes[1, 0].plot(glbl_history['epoch'], glbl_history['classification_loss'], 
+                    'g-', label='Classification Loss', linewidth=2)
+    axes[1, 0].plot(glbl_history['epoch'], glbl_history['glbl_loss'], 
+                    'orange', label='GLBL Loss', linewidth=2)
+    axes[1, 0].set_xlabel('Epoch')
+    axes[1, 0].set_ylabel('Loss')
+    axes[1, 0].set_title('GLBL Loss Components')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Plot 4: Test Accuracy (if available)
+    if 'test_accuracy' in standard_history and len(standard_history['test_accuracy']) > 0:
+        # Create x-axis for test accuracy (reported every few epochs)
+        test_epochs_std = [standard_history['epoch'][i] for i in range(0, len(standard_history['epoch']), 2)]
+        test_epochs_std = test_epochs_std[:len(standard_history['test_accuracy'])]
+        
+        axes[1, 1].plot(test_epochs_std, standard_history['test_accuracy'], 
+                        'b-o', label='Standard MLP', linewidth=2, markersize=6)
+        
+        # For GLBL, we might have test accuracy from the reporting
+        if hasattr(glbl_history, 'test_accuracy') and len(glbl_history.get('test_accuracy', [])) > 0:
+            test_epochs_glbl = [glbl_history['epoch'][i] for i in range(0, len(glbl_history['epoch']), 2)]
+            test_epochs_glbl = test_epochs_glbl[:len(glbl_history['test_accuracy'])]
+            axes[1, 1].plot(test_epochs_glbl, glbl_history['test_accuracy'], 
+                            'r-o', label='GLBL MLP', linewidth=2, markersize=6)
+        
+        axes[1, 1].set_xlabel('Epoch')
+        axes[1, 1].set_ylabel('Test Accuracy (%)')
+        axes[1, 1].set_title('Test Accuracy Comparison')
+        axes[1, 1].legend()
+        axes[1, 1].grid(True, alpha=0.3)
+    else:
+        # If no test accuracy, show training vs total loss for GLBL
+        axes[1, 1].plot(glbl_history['epoch'], glbl_history['train_loss'], 
+                        'r-', label='Training Loss', linewidth=2)
+        axes[1, 1].plot(glbl_history['epoch'], glbl_history['total_loss'], 
+                        'purple', label='Total Loss (with GLBL)', linewidth=2)
+        axes[1, 1].set_xlabel('Epoch')
+        axes[1, 1].set_ylabel('Loss')
+        axes[1, 1].set_title('GLBL Total vs Training Loss')
+        axes[1, 1].legend()
+        axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('training_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print(f"📊 Training plots saved as 'training_comparison.png'")
+
 def create_visualization(pathway_specializations, model_name="GLBL"):
     """Create comprehensive pathway analysis visualization"""
     if not pathway_specializations:
@@ -694,7 +902,7 @@ def run_complete_experiment():
     print("=" * 70)
     
     # Step 1: Train standard MLP baseline
-    standard_mlp, test_loader = train_standard_mlp()
+    standard_mlp, test_loader, standard_history = train_standard_mlp()
     standard_selectivity = measure_neuron_selectivity(standard_mlp, test_loader)
     
     # Step 2: Create GLBL pathway MLP
@@ -714,9 +922,9 @@ def run_complete_experiment():
     train_subset = torch.utils.data.Subset(train_dataset, subset_indices)
     train_loader = torch.utils.data.DataLoader(train_subset, batch_size=128, shuffle=True)
     
-    # Train with GLBL
+    # Train with GLBL (now with test loader for evaluation)
     trainer = GLBLTrainer(pathway_mlp)
-    trainer.train(train_loader, epochs=5)
+    glbl_history = trainer.train(train_loader, test_loader, epochs=5)
     
     # Step 4: Evaluate performance
     pathway_accuracy = evaluate_model(pathway_mlp, test_loader)
@@ -725,6 +933,7 @@ def run_complete_experiment():
     pathway_specializations = analyze_pathway_specialization(pathway_mlp, test_loader)
     
     # Step 6: Create visualizations
+    create_training_plots(standard_history, glbl_history)
     create_visualization(pathway_specializations, "GLBL")
     
     # Step 7: Final results
@@ -752,7 +961,9 @@ def run_complete_experiment():
         'pathway_mlp': pathway_mlp,
         'standard_selectivity': standard_selectivity,
         'pathway_specializations': pathway_specializations,
-        'pathway_analysis': pathway_analysis
+        'pathway_analysis': pathway_analysis,
+        'standard_history': standard_history,
+        'glbl_history': glbl_history
     }
 
 if __name__ == "__main__":
