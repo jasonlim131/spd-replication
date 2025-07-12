@@ -14,18 +14,21 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"🚀 Using device: {device}")
 
 class StandardMLP(nn.Module):
-    """Baseline MLP for comparison"""
-    def __init__(self, input_size=784, hidden_size=512, num_classes=10, dropout=0.2):
+    """Baseline MLP for comparison with two hidden layers and GELU activation"""
+    def __init__(self, input_size=784, hidden_size1=512, hidden_size2=256, num_classes=10, dropout=0.2):
         super().__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, num_classes)
+        self.fc1 = nn.Linear(input_size, hidden_size1)
+        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
+        self.fc3 = nn.Linear(hidden_size2, num_classes)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x))
+        x = F.gelu(self.fc1(x))
         x = self.dropout(x)
-        x = self.fc2(x)
+        x = F.gelu(self.fc2(x))
+        x = self.dropout(x)
+        x = self.fc3(x)
         return x
 
 class GLBLPathwayMLP(nn.Module):
@@ -43,41 +46,48 @@ class GLBLPathwayMLP(nn.Module):
         
         # Default configuration
         default_config = {
-            'num_input_regions': 4,      # Spatial image regions
-            'num_hidden_groups': 4,      # Hidden neuron groups  
-            'num_output_groups': 4,      # Output class groups
-            'momentum': 0.9,             # For global statistics
-            'router_hidden_size': 256,   # Pathway router capacity
-            'router_dropout': 0.1        # Pathway router dropout
+            'num_input_regions': 4,        # Spatial image regions
+            'num_hidden1_groups': 4,       # First hidden layer neuron groups  
+            'num_hidden2_groups': 4,       # Second hidden layer neuron groups
+            'num_output_groups': 4,        # Output class groups
+            'momentum': 0.9,               # For global statistics
+            'router_hidden_size': 256,     # Pathway router capacity
+            'router_dropout': 0.1          # Pathway router dropout
         }
         self.config = {**default_config, **(config or {})}
         
         # Network dimensions
         self.input_dim = pretrained_mlp.fc1.in_features
-        self.hidden_dim = pretrained_mlp.fc1.out_features
-        self.output_dim = pretrained_mlp.fc2.out_features
+        self.hidden1_dim = pretrained_mlp.fc1.out_features
+        self.hidden2_dim = pretrained_mlp.fc2.out_features
+        self.output_dim = pretrained_mlp.fc3.out_features
         
         # Pathway configuration
         self.num_input_regions = self.config['num_input_regions']
-        self.num_hidden_groups = self.config['num_hidden_groups']
+        self.num_hidden1_groups = self.config['num_hidden1_groups']
+        self.num_hidden2_groups = self.config['num_hidden2_groups']
         self.num_output_groups = self.config['num_output_groups']
         self.num_pathways = (self.num_input_regions * 
-                           self.num_hidden_groups * 
+                           self.num_hidden1_groups * 
+                           self.num_hidden2_groups *
                            self.num_output_groups)
         
         print(f"🧠 GLBL Pathway MLP Configuration:")
-        print(f"   Input: {self.input_dim} → Hidden: {self.hidden_dim} → Output: {self.output_dim}")
-        print(f"   Pathways: {self.num_input_regions}×{self.num_hidden_groups}×{self.num_output_groups} = {self.num_pathways}")
+        print(f"   Input: {self.input_dim} → Hidden1: {self.hidden1_dim} → Hidden2: {self.hidden2_dim} → Output: {self.output_dim}")
+        print(f"   Pathways: {self.num_input_regions}×{self.num_hidden1_groups}×{self.num_hidden2_groups}×{self.num_output_groups} = {self.num_pathways}")
         
         # Copy pretrained weights
-        self.fc1 = nn.Linear(self.input_dim, self.hidden_dim)
-        self.fc2 = nn.Linear(self.hidden_dim, self.output_dim)
+        self.fc1 = nn.Linear(self.input_dim, self.hidden1_dim)
+        self.fc2 = nn.Linear(self.hidden1_dim, self.hidden2_dim)
+        self.fc3 = nn.Linear(self.hidden2_dim, self.output_dim)
         
         with torch.no_grad():
             self.fc1.weight.copy_(pretrained_mlp.fc1.weight)
             self.fc1.bias.copy_(pretrained_mlp.fc1.bias)
             self.fc2.weight.copy_(pretrained_mlp.fc2.weight)
             self.fc2.bias.copy_(pretrained_mlp.fc2.bias)
+            self.fc3.weight.copy_(pretrained_mlp.fc3.weight)
+            self.fc3.bias.copy_(pretrained_mlp.fc3.bias)
         
         # Create pathway decomposition
         self._create_pathway_structure()
@@ -108,9 +118,13 @@ class GLBLPathwayMLP(nn.Module):
         input_groups = self._create_spatial_regions(28, 28, self.num_input_regions)
         self.register_buffer('input_groups_indices', input_groups)
         
-        # Hidden neuron groups
-        hidden_groups = self._create_neuron_groups(self.hidden_dim, self.num_hidden_groups)
-        self.register_buffer('hidden_groups_indices', hidden_groups)
+        # First hidden layer neuron groups
+        hidden1_groups = self._create_neuron_groups(self.hidden1_dim, self.num_hidden1_groups)
+        self.register_buffer('hidden1_groups_indices', hidden1_groups)
+        
+        # Second hidden layer neuron groups
+        hidden2_groups = self._create_neuron_groups(self.hidden2_dim, self.num_hidden2_groups)
+        self.register_buffer('hidden2_groups_indices', hidden2_groups)
         
         # Output class groups
         output_groups = self._create_neuron_groups(self.output_dim, self.num_output_groups)
@@ -118,7 +132,8 @@ class GLBLPathwayMLP(nn.Module):
         
         print(f"✅ Created pathway structure:")
         print(f"   Input regions: {input_groups.shape}")
-        print(f"   Hidden groups: {hidden_groups.shape}")
+        print(f"   Hidden1 groups: {hidden1_groups.shape}")
+        print(f"   Hidden2 groups: {hidden2_groups.shape}")
         print(f"   Output groups: {output_groups.shape}")
     
     def _create_spatial_regions(self, height, width, num_regions):
@@ -251,46 +266,53 @@ class GLBLPathwayMLP(nn.Module):
         
         pathway_idx = 0
         for i in range(self.num_input_regions):
-            for j in range(self.num_hidden_groups):
-                for k in range(self.num_output_groups):
-                    
-                    # Get pathway activation weights
-                    weights = pathway_weights[:, pathway_idx].unsqueeze(1)
-                    
-                    # Skip computation if pathway not used
-                    if weights.sum() < 1e-6:
+            for j in range(self.num_hidden1_groups):
+                for k in range(self.num_hidden2_groups):
+                    for l in range(self.num_output_groups):
+                        
+                        # Get pathway activation weights
+                        weights = pathway_weights[:, pathway_idx].unsqueeze(1)
+                        
+                        # Skip computation if pathway not used
+                        if weights.sum() < 1e-6:
+                            pathway_idx += 1
+                            continue
+                        
+                        # Get pathway indices
+                        input_indices = self.input_groups_indices[i]
+                        hidden1_indices = self.hidden1_groups_indices[j]
+                        hidden2_indices = self.hidden2_groups_indices[k]
+                        output_indices = self.output_groups_indices[l]
+                        
+                        # Extract pathway-specific weights and inputs
+                        input_subset = x_flat[:, input_indices]
+                        
+                        # Layer 1: input → hidden1
+                        W1_subset = self.fc1.weight[hidden1_indices][:, input_indices]
+                        b1_subset = self.fc1.bias[hidden1_indices]
+                        hidden1_output = F.gelu(F.linear(input_subset, W1_subset, b1_subset))
+                        
+                        # Layer 2: hidden1 → hidden2
+                        W2_subset = self.fc2.weight[hidden2_indices][:, hidden1_indices]
+                        b2_subset = self.fc2.bias[hidden2_indices]
+                        hidden2_output = F.gelu(F.linear(hidden1_output, W2_subset, b2_subset))
+                        
+                        # Layer 3: hidden2 → output
+                        W3_subset = self.fc3.weight[output_indices][:, hidden2_indices]
+                        b3_subset = self.fc3.bias[output_indices]
+                        pathway_output = F.linear(hidden2_output, W3_subset, b3_subset)
+                        
+                        # Accumulate weighted pathway output
+                        output[:, output_indices] += pathway_output * weights
+                        
+                        # Record activations for analysis
+                        if record_activations and true_labels is not None:
+                            self._record_pathway_activations(
+                                pathway_idx, i, j, k, l, weights, hidden1_output, hidden2_output,
+                                pathway_output, true_labels, batch_size
+                            )
+                        
                         pathway_idx += 1
-                        continue
-                    
-                    # Get pathway indices
-                    input_indices = self.input_groups_indices[i]
-                    hidden_indices = self.hidden_groups_indices[j]
-                    output_indices = self.output_groups_indices[k]
-                    
-                    # Extract pathway-specific weights and inputs
-                    input_subset = x_flat[:, input_indices]
-                    
-                    # Layer 1: input → hidden
-                    W1_subset = self.fc1.weight[hidden_indices][:, input_indices]
-                    b1_subset = self.fc1.bias[hidden_indices]
-                    hidden_output = F.relu(F.linear(input_subset, W1_subset, b1_subset))
-                    
-                    # Layer 2: hidden → output
-                    W2_subset = self.fc2.weight[output_indices][:, hidden_indices]
-                    b2_subset = self.fc2.bias[output_indices]
-                    pathway_output = F.linear(hidden_output, W2_subset, b2_subset)
-                    
-                    # Accumulate weighted pathway output
-                    output[:, output_indices] += pathway_output * weights
-                    
-                    # Record activations for analysis
-                    if record_activations and true_labels is not None:
-                        self._record_pathway_activations(
-                            pathway_idx, i, j, k, weights, hidden_output, 
-                            pathway_output, true_labels, batch_size
-                        )
-                    
-                    pathway_idx += 1
         
         # Update statistics
         if self.training:
@@ -304,10 +326,10 @@ class GLBLPathwayMLP(nn.Module):
         
         return output
     
-    def _record_pathway_activations(self, pathway_idx, i, j, k, weights, 
-                                  hidden_output, pathway_output, true_labels, batch_size):
+    def _record_pathway_activations(self, pathway_idx, i, j, k, l, weights, 
+                                  hidden1_output, hidden2_output, pathway_output, true_labels, batch_size):
         """Record pathway activations for analysis"""
-        pathway_name = f"Input{i}_Hidden{j}_Output{k}"
+        pathway_name = f"Input{i}_Hidden1{j}_Hidden2{k}_Output{l}"
         
         for sample_idx in range(batch_size):
             if weights[sample_idx] > 1e-3:  # Only record active pathways
@@ -315,7 +337,8 @@ class GLBLPathwayMLP(nn.Module):
                     'pathway_idx': pathway_idx,
                     'true_class': true_labels[sample_idx].item(),
                     'pathway_weight': weights[sample_idx].item(),
-                    'hidden_activation': hidden_output[sample_idx].mean().item(),
+                    'hidden1_activation': hidden1_output[sample_idx].mean().item(),
+                    'hidden2_activation': hidden2_output[sample_idx].mean().item(),
                     'output_activation': pathway_output[sample_idx].max().item()
                 })
     
@@ -504,28 +527,53 @@ def measure_neuron_selectivity(model, test_loader, model_name="Standard"):
     print(f"\n🔬 Measuring {model_name} Neuron Selectivity...")
     
     model.eval()
-    hidden_by_class = [[] for _ in range(10)]
+    hidden1_by_class = [[] for _ in range(10)]
+    hidden2_by_class = [[] for _ in range(10)]
     
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             x_flat = data.view(data.size(0), -1)
-            hidden = F.relu(model.fc1(x_flat))
+            hidden1 = F.gelu(model.fc1(x_flat))
+            hidden2 = F.gelu(model.fc2(hidden1))
             
-            hidden_cpu = hidden.cpu().numpy()
+            hidden1_cpu = hidden1.cpu().numpy()
+            hidden2_cpu = hidden2.cpu().numpy()
             target_cpu = target.cpu().numpy()
             
             for i in range(len(target_cpu)):
                 class_label = target_cpu[i]
-                hidden_by_class[class_label].append(hidden_cpu[i])
+                hidden1_by_class[class_label].append(hidden1_cpu[i])
+                hidden2_by_class[class_label].append(hidden2_cpu[i])
     
-    # Calculate selectivity scores
+    # Calculate selectivity scores for both hidden layers
     neuron_scores = []
+    
+    # Hidden layer 1
     for neuron_idx in range(model.fc1.out_features):
         class_means = []
         for class_idx in range(10):
-            if hidden_by_class[class_idx]:
-                activations = [h[neuron_idx] for h in hidden_by_class[class_idx]]
+            if hidden1_by_class[class_idx]:
+                activations = [h[neuron_idx] for h in hidden1_by_class[class_idx]]
+                class_means.append(np.mean(activations))
+            else:
+                class_means.append(0.0)
+        
+        class_means = np.array(class_means)
+        probs = class_means + 1e-8
+        probs = probs / probs.sum()
+        
+        neuron_entropy = entropy(probs)
+        max_entropy = entropy(np.ones(10) / 10)
+        selectivity = 1 - (neuron_entropy / max_entropy)
+        neuron_scores.append(selectivity)
+    
+    # Hidden layer 2
+    for neuron_idx in range(model.fc2.out_features):
+        class_means = []
+        for class_idx in range(10):
+            if hidden2_by_class[class_idx]:
+                activations = [h[neuron_idx] for h in hidden2_by_class[class_idx]]
                 class_means.append(np.mean(activations))
             else:
                 class_means.append(0.0)
@@ -655,6 +703,7 @@ def create_visualization(pathway_specializations, model_name="GLBL"):
     
     for pathway_name, stats in pathway_specializations.items():
         if 'Input' in pathway_name:
+            # Handle new format: Input0_Hidden10_Hidden21_Output2
             region_idx = int(pathway_name.split('_')[0].replace('Input', ''))
             for class_idx, count in stats['class_distribution'].items():
                 region_class_matrix[region_idx, class_idx] += count * stats['purity']
