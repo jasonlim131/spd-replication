@@ -26,6 +26,8 @@ dependencies = [
     "streamlit",
     "streamlit-antd-components",
     "datasets",
+    "scipy",
+    "seaborn",
 ]
 
 [project.optional-dependencies]
