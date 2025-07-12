@@ -1,0 +1,990 @@
+{
+  "summary_statistics": {
+    "total_pathways_analyzed": 20,
+    "avg_overall_purity": 0.3518288283283556,
+    "avg_category_purity": 0.035814088183515676,
+    "std_overall_purity": 0.005476613639607891,
+    "monosemanticity_distribution": {
+      "low": 20
+    },
+    "specialization_distribution": {
+      "generalist": 20
+    },
+    "category_distribution": {
+      "adjectives": 4,
+      "numbers": 5,
+      "verbs": 3,
+      "functions": 4,
+      "connectors": 2,
+      "symbols": 1,
+      "nouns": 1
+    }
+  },
+  "pathway_details": [
+    {
+      "pathway_idx": 2327,
+      "rank": 1,
+      "usage_count": 1234,
+      "purity_metrics": {
+        "token_purity": 0.022307886772495955,
+        "category_purity": 0.016158006735553787,
+        "position_purity": 0.0029239965813230295,
+        "weight_consistency": 0.999998884892646,
+        "overall_purity": 0.34615492613356524,
+        "activation_count": 1234,
+        "unique_tokens": 634,
+        "unique_categories": 9,
+        "dominant_category": [
+          "adjectives",
+          189
+        ],
+        "dominant_token": [
+          482,
+          7
+        ],
+        "avg_weight": 0.00037206734986383334,
+        "weight_std": 1.1151085975315412e-06
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[16] \u00d7 MLP[1] \u00d7 Post[11]",
+        "specialization_type": "generalist",
+        "dominant_category": "adjectives",
+        "category_dominance": 0.15316045380875204,
+        "preferred_positions": [
+          [
+            11,
+            98
+          ],
+          [
+            7,
+            95
+          ],
+          [
+            2,
+            86
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for adjectives tokens (15.3% dominance), preferring positions [11, 7]. Uses input_normalization \u2192 nonlinear_processing \u2192 activation_control processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "adjectives_handler"
+      }
+    },
+    {
+      "pathway_idx": 1310,
+      "rank": 2,
+      "usage_count": 1020,
+      "purity_metrics": {
+        "token_purity": 0.022817803036411788,
+        "category_purity": 0.022087166876071263,
+        "position_purity": 0.011211849838768106,
+        "weight_consistency": 0.9999880763086993,
+        "overall_purity": 0.3482976820737275,
+        "activation_count": 1020,
+        "unique_tokens": 569,
+        "unique_categories": 9,
+        "dominant_category": [
+          "numbers",
+          166
+        ],
+        "dominant_token": [
+          256,
+          7
+        ],
+        "avg_weight": 0.0005885253866390307,
+        "weight_std": 1.1923833476909835e-05
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[9] \u00d7 MLP[1] \u00d7 Post[2]",
+        "specialization_type": "generalist",
+        "dominant_category": "numbers",
+        "category_dominance": 0.1627450980392157,
+        "preferred_positions": [
+          [
+            11,
+            96
+          ],
+          [
+            15,
+            87
+          ],
+          [
+            1,
+            79
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for numbers tokens (16.3% dominance), preferring positions [11, 15]. Uses feature_extraction \u2192 nonlinear_processing \u2192 normalization processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "numbers_handler"
+      }
+    },
+    {
+      "pathway_idx": 2626,
+      "rank": 3,
+      "usage_count": 926,
+      "purity_metrics": {
+        "token_purity": 0.022447158019562097,
+        "category_purity": 0.023793422976563283,
+        "position_purity": 0.00510961757949413,
+        "weight_consistency": 0.9999992255239719,
+        "overall_purity": 0.3487466021733658,
+        "activation_count": 926,
+        "unique_tokens": 549,
+        "unique_categories": 9,
+        "dominant_category": [
+          "adjectives",
+          157
+        ],
+        "dominant_token": [
+          256,
+          6
+        ],
+        "avg_weight": 0.0003713991946013258,
+        "weight_std": 7.744766279175947e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[18] \u00d7 MLP[2] \u00d7 Post[10]",
+        "specialization_type": "generalist",
+        "dominant_category": "adjectives",
+        "category_dominance": 0.1695464362850972,
+        "preferred_positions": [
+          [
+            5,
+            74
+          ],
+          [
+            3,
+            74
+          ],
+          [
+            8,
+            69
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for adjectives tokens (17.0% dominance), preferring positions [5, 3]. Uses pattern_detection \u2192 feature_combination \u2192 normalization processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "adjectives_handler"
+      }
+    },
+    {
+      "pathway_idx": 1053,
+      "rank": 4,
+      "usage_count": 816,
+      "purity_metrics": {
+        "token_purity": 0.020533501948859945,
+        "category_purity": 0.02178029943082893,
+        "position_purity": 0.006488432113134768,
+        "weight_consistency": 0.9999994166103059,
+        "overall_purity": 0.3474377393299983,
+        "activation_count": 816,
+        "unique_tokens": 500,
+        "unique_categories": 9,
+        "dominant_category": [
+          "verbs",
+          120
+        ],
+        "dominant_token": [
+          256,
+          6
+        ],
+        "avg_weight": 0.0003707145429407498,
+        "weight_std": 5.833900344140636e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[7] \u00d7 MLP[3] \u00d7 Post[9]",
+        "specialization_type": "generalist",
+        "dominant_category": "verbs",
+        "category_dominance": 0.14705882352941177,
+        "preferred_positions": [
+          [
+            11,
+            63
+          ],
+          [
+            7,
+            60
+          ],
+          [
+            2,
+            58
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for verbs tokens (14.7% dominance), preferring positions [11, 7]. Uses context_integration \u2192 abstraction \u2192 feature_refinement processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "verbs_handler"
+      }
+    },
+    {
+      "pathway_idx": 2524,
+      "rank": 5,
+      "usage_count": 790,
+      "purity_metrics": {
+        "token_purity": 0.023090871641045174,
+        "category_purity": 0.05174780526412115,
+        "position_purity": 0.005698723313141696,
+        "weight_consistency": 0.9999990740796827,
+        "overall_purity": 0.358279250328283,
+        "activation_count": 790,
+        "unique_tokens": 479,
+        "unique_categories": 9,
+        "dominant_category": [
+          "functions",
+          183
+        ],
+        "dominant_token": [
+          264,
+          6
+        ],
+        "avg_weight": 0.0003716412533437126,
+        "weight_std": 9.259211746976623e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[17] \u00d7 MLP[6] \u00d7 Post[4]",
+        "specialization_type": "generalist",
+        "dominant_category": "functions",
+        "category_dominance": 0.23164556962025318,
+        "preferred_positions": [
+          [
+            4,
+            71
+          ],
+          [
+            14,
+            62
+          ],
+          [
+            15,
+            59
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for functions tokens (23.2% dominance), preferring positions [4, 14]. Uses feature_extraction \u2192 feature_combination \u2192 output_shaping processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "functions_handler"
+      }
+    },
+    {
+      "pathway_idx": 967,
+      "rank": 6,
+      "usage_count": 775,
+      "purity_metrics": {
+        "token_purity": 0.019324400276383047,
+        "category_purity": 0.026781851807154533,
+        "position_purity": 0.012456371026074331,
+        "weight_consistency": 0.9999865731692461,
+        "overall_purity": 0.34869760841759456,
+        "activation_count": 775,
+        "unique_tokens": 487,
+        "unique_categories": 9,
+        "dominant_category": [
+          "numbers",
+          153
+        ],
+        "dominant_token": [
+          482,
+          5
+        ],
+        "avg_weight": 0.00037210672485431836,
+        "weight_std": 1.3427011036112613e-05
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[6] \u00d7 MLP[8] \u00d7 Post[7]",
+        "specialization_type": "generalist",
+        "dominant_category": "numbers",
+        "category_dominance": 0.19741935483870968,
+        "preferred_positions": [
+          [
+            7,
+            78
+          ],
+          [
+            14,
+            59
+          ],
+          [
+            13,
+            59
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for numbers tokens (19.7% dominance), preferring positions [7, 14]. Uses pattern_detection \u2192 linear_transformation \u2192 activation_control processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "numbers_handler"
+      }
+    },
+    {
+      "pathway_idx": 1169,
+      "rank": 7,
+      "usage_count": 685,
+      "purity_metrics": {
+        "token_purity": 0.020398136138445433,
+        "category_purity": 0.0558314962335873,
+        "position_purity": 0.006461906368913084,
+        "weight_consistency": 0.9999990841432139,
+        "overall_purity": 0.3587429055050822,
+        "activation_count": 685,
+        "unique_tokens": 446,
+        "unique_categories": 9,
+        "dominant_category": [
+          "functions",
+          156
+        ],
+        "dominant_token": [
+          264,
+          5
+        ],
+        "avg_weight": 0.00037155006034979526,
+        "weight_std": 9.158576247798874e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[8] \u00d7 MLP[1] \u00d7 Post[5]",
+        "specialization_type": "generalist",
+        "dominant_category": "functions",
+        "category_dominance": 0.22773722627737225,
+        "preferred_positions": [
+          [
+            2,
+            66
+          ],
+          [
+            7,
+            50
+          ],
+          [
+            13,
+            48
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for functions tokens (22.8% dominance), preferring positions [2, 7]. Uses input_normalization \u2192 nonlinear_processing \u2192 feature_refinement processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "function_classifier"
+      }
+    },
+    {
+      "pathway_idx": 895,
+      "rank": 8,
+      "usage_count": 658,
+      "purity_metrics": {
+        "token_purity": 0.020037367422265362,
+        "category_purity": 0.025531328080204974,
+        "position_purity": 0.017849712083524483,
+        "weight_consistency": 0.9999913478995945,
+        "overall_purity": 0.348520014467355,
+        "activation_count": 658,
+        "unique_tokens": 431,
+        "unique_categories": 9,
+        "dominant_category": [
+          "adjectives",
+          106
+        ],
+        "dominant_token": [
+          183,
+          5
+        ],
+        "avg_weight": 0.0005886729515269455,
+        "weight_std": 8.652175264928946e-06
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[6] \u00d7 MLP[2] \u00d7 Post[7]",
+        "specialization_type": "generalist",
+        "dominant_category": "adjectives",
+        "category_dominance": 0.16109422492401215,
+        "preferred_positions": [
+          [
+            9,
+            75
+          ],
+          [
+            6,
+            54
+          ],
+          [
+            8,
+            52
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for adjectives tokens (16.1% dominance), preferring positions [9, 6]. Uses pattern_detection \u2192 feature_combination \u2192 activation_control processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "adjectives_handler"
+      }
+    },
+    {
+      "pathway_idx": 2734,
+      "rank": 9,
+      "usage_count": 644,
+      "purity_metrics": {
+        "token_purity": 0.018493589869616134,
+        "category_purity": 0.03483800650039581,
+        "position_purity": 0.005427392913473161,
+        "weight_consistency": 0.9999993919822514,
+        "overall_purity": 0.3511103294507545,
+        "activation_count": 644,
+        "unique_tokens": 445,
+        "unique_categories": 9,
+        "dominant_category": [
+          "connectors",
+          137
+        ],
+        "dominant_token": [
+          830,
+          6
+        ],
+        "avg_weight": 0.0003711778223326557,
+        "weight_std": 6.080181183944277e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[18] \u00d7 MLP[11] \u00d7 Post[10]",
+        "specialization_type": "generalist",
+        "dominant_category": "connectors",
+        "category_dominance": 0.2127329192546584,
+        "preferred_positions": [
+          [
+            1,
+            54
+          ],
+          [
+            4,
+            54
+          ],
+          [
+            2,
+            48
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for connectors tokens (21.3% dominance), preferring positions [1, 4]. Uses pattern_detection \u2192 abstraction \u2192 normalization processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "connectors_handler"
+      }
+    },
+    {
+      "pathway_idx": 1098,
+      "rank": 10,
+      "usage_count": 632,
+      "purity_metrics": {
+        "token_purity": 0.018718823989460787,
+        "category_purity": 0.025296035332389,
+        "position_purity": 0.023343456505932614,
+        "weight_consistency": 0.9999755142416134,
+        "overall_purity": 0.34799679118782106,
+        "activation_count": 632,
+        "unique_tokens": 427,
+        "unique_categories": 9,
+        "dominant_category": [
+          "numbers",
+          111
+        ],
+        "dominant_token": [
+          569,
+          6
+        ],
+        "avg_weight": 0.0005862920958481734,
+        "weight_std": 2.4486357953696007e-05
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[7] \u00d7 MLP[7] \u00d7 Post[6]",
+        "specialization_type": "generalist",
+        "dominant_category": "numbers",
+        "category_dominance": 0.17563291139240506,
+        "preferred_positions": [
+          [
+            7,
+            74
+          ],
+          [
+            14,
+            59
+          ],
+          [
+            4,
+            53
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for numbers tokens (17.6% dominance), preferring positions [7, 14]. Uses context_integration \u2192 abstraction \u2192 normalization processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "numbers_handler"
+      }
+    },
+    {
+      "pathway_idx": 1277,
+      "rank": 11,
+      "usage_count": 630,
+      "purity_metrics": {
+        "token_purity": 0.022387689028783186,
+        "category_purity": 0.03356193631425908,
+        "position_purity": 0.03918012893610501,
+        "weight_consistency": 0.9999787765539173,
+        "overall_purity": 0.35197613396565314,
+        "activation_count": 630,
+        "unique_tokens": 406,
+        "unique_categories": 9,
+        "dominant_category": [
+          "verbs",
+          106
+        ],
+        "dominant_token": [
+          244,
+          6
+        ],
+        "avg_weight": 0.0005868289263046805,
+        "weight_std": 2.122389652687414e-05
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[8] \u00d7 MLP[10] \u00d7 Post[5]",
+        "specialization_type": "generalist",
+        "dominant_category": "verbs",
+        "category_dominance": 0.16825396825396827,
+        "preferred_positions": [
+          [
+            13,
+            77
+          ],
+          [
+            15,
+            76
+          ],
+          [
+            14,
+            55
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for verbs tokens (16.8% dominance), preferring positions [13, 15]. Uses input_normalization \u2192 feature_combination \u2192 feature_refinement processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "verbs_handler"
+      }
+    },
+    {
+      "pathway_idx": 1514,
+      "rank": 12,
+      "usage_count": 614,
+      "purity_metrics": {
+        "token_purity": 0.019685781074778363,
+        "category_purity": 0.03082755256133274,
+        "position_purity": 0.013002185524250143,
+        "weight_consistency": 0.9999740072848257,
+        "overall_purity": 0.35016244697364557,
+        "activation_count": 614,
+        "unique_tokens": 421,
+        "unique_categories": 9,
+        "dominant_category": [
+          "verbs",
+          103
+        ],
+        "dominant_token": [
+          433,
+          5
+        ],
+        "avg_weight": 0.0003748069126640541,
+        "weight_std": 2.5993390813026353e-05
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[10] \u00d7 MLP[6] \u00d7 Post[2]",
+        "specialization_type": "generalist",
+        "dominant_category": "verbs",
+        "category_dominance": 0.16775244299674266,
+        "preferred_positions": [
+          [
+            5,
+            59
+          ],
+          [
+            13,
+            53
+          ],
+          [
+            4,
+            52
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for verbs tokens (16.8% dominance), preferring positions [5, 13]. Uses pattern_detection \u2192 feature_combination \u2192 normalization processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "verbs_handler"
+      }
+    },
+    {
+      "pathway_idx": 2079,
+      "rank": 13,
+      "usage_count": 598,
+      "purity_metrics": {
+        "token_purity": 0.022838717437064338,
+        "category_purity": 0.03788506790658508,
+        "position_purity": 0.032849443849192306,
+        "weight_consistency": 0.9999994775247859,
+        "overall_purity": 0.3535744209561451,
+        "activation_count": 598,
+        "unique_tokens": 384,
+        "unique_categories": 9,
+        "dominant_category": [
+          "numbers",
+          128
+        ],
+        "dominant_token": [
+          494,
+          7
+        ],
+        "avg_weight": 0.0003705437578974186,
+        "weight_std": 5.224754871504913e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[14] \u00d7 MLP[5] \u00d7 Post[3]",
+        "specialization_type": "generalist",
+        "dominant_category": "numbers",
+        "category_dominance": 0.2140468227424749,
+        "preferred_positions": [
+          [
+            10,
+            59
+          ],
+          [
+            12,
+            58
+          ],
+          [
+            13,
+            58
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for numbers tokens (21.4% dominance), preferring positions [10, 12]. Uses pattern_detection \u2192 nonlinear_processing \u2192 activation_control processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "numbers_handler"
+      }
+    },
+    {
+      "pathway_idx": 294,
+      "rank": 14,
+      "usage_count": 589,
+      "purity_metrics": {
+        "token_purity": 0.01733410478785402,
+        "category_purity": 0.02843876781750332,
+        "position_purity": 0.017956007354300918,
+        "weight_consistency": 0.9999992946073231,
+        "overall_purity": 0.34859072240422684,
+        "activation_count": 589,
+        "unique_tokens": 407,
+        "unique_categories": 9,
+        "dominant_category": [
+          "symbols",
+          115
+        ],
+        "dominant_token": [
+          569,
+          5
+        ],
+        "avg_weight": 0.0003708427514883267,
+        "weight_std": 7.053931746164657e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[2] \u00d7 MLP[0] \u00d7 Post[6]",
+        "specialization_type": "generalist",
+        "dominant_category": "symbols",
+        "category_dominance": 0.19524617996604415,
+        "preferred_positions": [
+          [
+            15,
+            57
+          ],
+          [
+            3,
+            54
+          ],
+          [
+            1,
+            54
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for symbols tokens (19.5% dominance), preferring positions [15, 3]. Uses pattern_detection \u2192 linear_transformation \u2192 normalization processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "symbols_handler"
+      }
+    },
+    {
+      "pathway_idx": 785,
+      "rank": 15,
+      "usage_count": 541,
+      "purity_metrics": {
+        "token_purity": 0.020047332310601074,
+        "category_purity": 0.08611484862000685,
+        "position_purity": 0.0375498009393983,
+        "weight_consistency": 0.9999986306007559,
+        "overall_purity": 0.36872027051045464,
+        "activation_count": 541,
+        "unique_tokens": 367,
+        "unique_categories": 9,
+        "dominant_category": [
+          "functions",
+          151
+        ],
+        "dominant_token": [
+          494,
+          5
+        ],
+        "avg_weight": 0.0005893845207104373,
+        "weight_std": 1.3694011193241916e-06
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[5] \u00d7 MLP[5] \u00d7 Post[5]",
+        "specialization_type": "generalist",
+        "dominant_category": "functions",
+        "category_dominance": 0.27911275415896486,
+        "preferred_positions": [
+          [
+            13,
+            60
+          ],
+          [
+            6,
+            52
+          ],
+          [
+            12,
+            51
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for functions tokens (27.9% dominance), preferring positions [13, 6]. Uses feature_extraction \u2192 nonlinear_processing \u2192 feature_refinement processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "functions_handler"
+      }
+    },
+    {
+      "pathway_idx": 1993,
+      "rank": 16,
+      "usage_count": 505,
+      "purity_metrics": {
+        "token_purity": 0.02025829180905847,
+        "category_purity": 0.05404601390294894,
+        "position_purity": 0.016939855879130827,
+        "weight_consistency": 0.9999994067679054,
+        "overall_purity": 0.3581012374933043,
+        "activation_count": 505,
+        "unique_tokens": 368,
+        "unique_categories": 9,
+        "dominant_category": [
+          "numbers",
+          107
+        ],
+        "dominant_token": [
+          519,
+          7
+        ],
+        "avg_weight": 0.0003710564891554157,
+        "weight_std": 5.932324464973543e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[13] \u00d7 MLP[10] \u00d7 Post[1]",
+        "specialization_type": "generalist",
+        "dominant_category": "numbers",
+        "category_dominance": 0.21188118811881188,
+        "preferred_positions": [
+          [
+            13,
+            48
+          ],
+          [
+            1,
+            46
+          ],
+          [
+            7,
+            41
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for numbers tokens (21.2% dominance), preferring positions [13, 1]. Uses feature_extraction \u2192 feature_combination \u2192 feature_refinement processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "numbers_handler"
+      }
+    },
+    {
+      "pathway_idx": 1319,
+      "rank": 17,
+      "usage_count": 480,
+      "purity_metrics": {
+        "token_purity": 0.019196353632261687,
+        "category_purity": 0.03433988705506896,
+        "position_purity": 0.011201680484916987,
+        "weight_consistency": 0.9999900744620808,
+        "overall_purity": 0.35117543838313714,
+        "activation_count": 480,
+        "unique_tokens": 343,
+        "unique_categories": 9,
+        "dominant_category": [
+          "adjectives",
+          87
+        ],
+        "dominant_token": [
+          486,
+          6
+        ],
+        "avg_weight": 0.0003714522978649863,
+        "weight_std": 9.925636436461425e-06
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[9] \u00d7 MLP[1] \u00d7 Post[11]",
+        "specialization_type": "generalist",
+        "dominant_category": "adjectives",
+        "category_dominance": 0.18125,
+        "preferred_positions": [
+          [
+            11,
+            40
+          ],
+          [
+            8,
+            40
+          ],
+          [
+            12,
+            39
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for adjectives tokens (18.1% dominance), preferring positions [11, 8]. Uses feature_extraction \u2192 nonlinear_processing \u2192 activation_control processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "adjectives_handler"
+      }
+    },
+    {
+      "pathway_idx": 156,
+      "rank": 18,
+      "usage_count": 442,
+      "purity_metrics": {
+        "token_purity": 0.014635104879403671,
+        "category_purity": 0.03412921287912707,
+        "position_purity": 0.011616097018124494,
+        "weight_consistency": 0.9999795089814002,
+        "overall_purity": 0.349581275579977,
+        "activation_count": 442,
+        "unique_tokens": 343,
+        "unique_categories": 9,
+        "dominant_category": [
+          "connectors",
+          76
+        ],
+        "dominant_token": [
+          844,
+          5
+        ],
+        "avg_weight": 0.00037313522925079963,
+        "weight_std": 2.049143849024707e-05
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[1] \u00d7 MLP[1] \u00d7 Post[0]",
+        "specialization_type": "generalist",
+        "dominant_category": "connectors",
+        "category_dominance": 0.17194570135746606,
+        "preferred_positions": [
+          [
+            11,
+            44
+          ],
+          [
+            2,
+            35
+          ],
+          [
+            0,
+            34
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for connectors tokens (17.2% dominance), preferring positions [11, 2]. Uses feature_extraction \u2192 nonlinear_processing \u2192 output_shaping processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "connectors_handler"
+      }
+    },
+    {
+      "pathway_idx": 1689,
+      "rank": 19,
+      "usage_count": 434,
+      "purity_metrics": {
+        "token_purity": 0.013713101983359288,
+        "category_purity": 0.022390492405782725,
+        "position_purity": 0.03805802712661466,
+        "weight_consistency": 0.9999265021523841,
+        "overall_purity": 0.34534336551384204,
+        "activation_count": 434,
+        "unique_tokens": 332,
+        "unique_categories": 9,
+        "dominant_category": [
+          "nouns",
+          68
+        ],
+        "dominant_token": [
+          275,
+          3
+        ],
+        "avg_weight": 0.0005614694024431884,
+        "weight_std": 7.350324994649151e-05
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[11] \u00d7 MLP[8] \u00d7 Post[9]",
+        "specialization_type": "generalist",
+        "dominant_category": "nouns",
+        "category_dominance": 0.15668202764976957,
+        "preferred_positions": [
+          [
+            13,
+            50
+          ],
+          [
+            11,
+            49
+          ],
+          [
+            12,
+            42
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for nouns tokens (15.7% dominance), preferring positions [13, 11]. Uses context_integration \u2192 linear_transformation \u2192 feature_refinement processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "nouns_handler"
+      }
+    },
+    {
+      "pathway_idx": 2089,
+      "rank": 20,
+      "usage_count": 433,
+      "purity_metrics": {
+        "token_purity": 0.015400349073408148,
+        "category_purity": 0.0507025649708287,
+        "position_purity": 0.05133384861536894,
+        "weight_consistency": 0.9999993031132981,
+        "overall_purity": 0.3553674057191783,
+        "activation_count": 433,
+        "unique_tokens": 327,
+        "unique_categories": 9,
+        "dominant_category": [
+          "functions",
+          93
+        ],
+        "dominant_token": [
+          489,
+          4
+        ],
+        "avg_weight": 0.00037071614855025006,
+        "weight_std": 6.968871874185138e-07
+      },
+      "interpretation": {
+        "pathway_composition": "Pre[14] \u00d7 MLP[6] \u00d7 Post[1]",
+        "specialization_type": "generalist",
+        "dominant_category": "functions",
+        "category_dominance": 0.21478060046189376,
+        "preferred_positions": [
+          [
+            10,
+            64
+          ],
+          [
+            0,
+            55
+          ],
+          [
+            5,
+            40
+          ]
+        ],
+        "semantic_description": "This pathway is weakly specialized for functions tokens (21.5% dominance), preferring positions [10, 0]. Uses pattern_detection \u2192 feature_combination \u2192 feature_refinement processing pipeline.",
+        "monosemanticity_level": "low",
+        "functional_role": "functions_handler"
+      }
+    }
+  ],
+  "insights": [
+    "Low purity indicates distributed, polysemantic representations",
+    "Wide category distribution shows diverse semantic coverage",
+    "All pathways use unique expert combinations - no redundancy"
+  ]
+}
