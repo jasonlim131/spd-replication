@@ -1,7 +1,7 @@
 # GLBL Experiment Results Branch
 
 ## Branch Information
-- **Branch Name**: `glbl-experiment-results`
+- **Branch Name**: `glbl-results`
 - **Created From**: `cursor/reperform-gelu-glbl-experiment-and-plot-9105`
 - **Purpose**: Clean branch containing GLBL experiment results without large files
 
