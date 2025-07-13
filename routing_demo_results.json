@@ -1,0 +1,31 @@
+{
+  "high_specialization": {
+    "avg_purity": 0.22844854896957523,
+    "pathway_count": 8
+  },
+  "low_specialization": {
+    "avg_purity": 0.06282024741491915,
+    "pathway_count": 8
+  },
+  "example_pathway": {
+    "name": "pathway_0",
+    "purity": 0.44565861979105936,
+    "top_tokens": [
+      {
+        "token_id": 78,
+        "count": 98,
+        "frequency": 0.196
+      },
+      {
+        "token_id": 71,
+        "count": 98,
+        "frequency": 0.196
+      },
+      {
+        "token_id": 40,
+        "count": 93,
+        "frequency": 0.186
+      }
+    ]
+  }
+}
