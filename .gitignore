@@ -166,3 +166,23 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# GLBL Experiment - Exclude large files
+data/MNIST/raw/*.ubyte
+data/MNIST/raw/*.gz
+glbl_venv/
+*.png
+*.jpg
+*.jpeg
+*.pkl
+*.pt
+*.pth
+*.model
+*.h5
+*.hdf5
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
