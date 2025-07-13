@@ -33,13 +33,13 @@ class GLBLPathwayMLP_SingleLayer(nn.Module):
     def __init__(self, pretrained_mlp, config=None):
         super().__init__()
         
-        # Configuration for single layer
+        # Updated configuration for fine-grained groups
         default_config = {
             'num_input_regions': 4,        # Spatial image regions
-            'num_hidden_groups': 4,        # Hidden layer neuron groups  
+            'num_hidden_groups': 8,        # CHANGED: More fine-grained groups (8 instead of 4)
             'num_output_groups': 4,        # Output class groups
             'momentum': 0.9,               # For global statistics
-            'router_hidden_size': 128,     # Pathway router capacity
+            'router_hidden_size': 256,     # CHANGED: Larger router capacity for more pathways
             'router_dropout': 0.1          # Pathway router dropout
         }
         self.config = {**default_config, **(config or {})}
@@ -57,9 +57,10 @@ class GLBLPathwayMLP_SingleLayer(nn.Module):
                            self.num_hidden_groups * 
                            self.num_output_groups)
         
-        print(f"🧠 Global GLBL Single Layer Configuration:")
+        print(f"🧠 Fine-Grained GLBL Single Layer Configuration:")
         print(f"   Input: {self.input_dim} → Hidden: {self.hidden_dim} → Output: {self.output_dim}")
         print(f"   Pathways: {self.num_input_regions}×{self.num_hidden_groups}×{self.num_output_groups} = {self.num_pathways}")
+        print(f"   Neurons per hidden group: {self.hidden_dim // self.num_hidden_groups}")
         
         # Copy pretrained weights
         self.fc1 = nn.Linear(self.input_dim, self.hidden_dim)
@@ -74,12 +75,14 @@ class GLBLPathwayMLP_SingleLayer(nn.Module):
         # Create pathway decomposition
         self._create_pathway_structure()
         
-        # Pathway router network
+        # Enhanced pathway router network for more pathways
         self.pathway_router = nn.Sequential(
             nn.Linear(self.input_dim, self.config['router_hidden_size']),
             nn.ReLU(),
             nn.Dropout(self.config['router_dropout']),
-            nn.Linear(self.config['router_hidden_size'], self.num_pathways)
+            nn.Linear(self.config['router_hidden_size'], 128),  # Additional layer
+            nn.ReLU(),
+            nn.Linear(128, self.num_pathways)
         )
         
         # Global Load Balancing statistics
@@ -186,7 +189,7 @@ class GLBLPathwayMLP_SingleLayer(nn.Module):
         
         return glbl_loss, current_frequencies, current_avg_scores
     
-    def select_pathways(self, pathway_scores, top_k=8, temperature=1.0):
+    def select_pathways(self, pathway_scores, top_k=16, temperature=1.0):
         """Smart pathway selection with load balancing awareness"""
         batch_size = pathway_scores.shape[0]
         pathway_probs = F.softmax(pathway_scores / temperature, dim=-1)
@@ -211,7 +214,7 @@ class GLBLPathwayMLP_SingleLayer(nn.Module):
         
         return pathway_weights
     
-    def forward(self, x, top_k=8, temperature=1.0, record_activations=False, true_labels=None):
+    def forward(self, x, top_k=16, temperature=1.0, record_activations=False, true_labels=None):
         """Forward pass with pathway-based computation"""
         batch_size = x.shape[0]
         x_flat = x.view(batch_size, -1)
